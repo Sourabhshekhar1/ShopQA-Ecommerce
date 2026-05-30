@@ -17,6 +17,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AdminServlet extends HttpServlet {
     private final ProductDAO productDAO = new ProductDAO();
@@ -26,19 +28,19 @@ public class AdminServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         if (!SessionUtil.isAdmin(req.getSession(false))) {
-            resp.sendRedirect(req.getContextPath() + "/user?action=login");
+            resp.sendRedirect(req.getContextPath() + "/");
             return;
         }
         String action = req.getParameter("action");
         if ("products".equals(action)) {
-            req.setAttribute("products", productDAO.getAll());
+            req.setAttribute("products", getAllProductsForAdmin());
             req.setAttribute("categories", categoryDAO.getAll());
             req.getRequestDispatcher("/WEB-INF/views/admin/manageProducts.jsp").forward(req, resp);
         } else if ("orders".equals(action)) {
             req.setAttribute("orders", orderDAO.getAllOrders());
             req.getRequestDispatcher("/WEB-INF/views/admin/manageOrders.jsp").forward(req, resp);
         } else {
-            req.setAttribute("totalProducts", count("SELECT COUNT(*) FROM products"));
+            req.setAttribute("totalProducts", count("SELECT COUNT(*) FROM products WHERE is_active = 1"));
             req.setAttribute("totalOrders", count("SELECT COUNT(*) FROM orders"));
             req.setAttribute("totalUsers", count("SELECT COUNT(*) FROM users"));
             req.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(req, resp);
@@ -48,7 +50,7 @@ public class AdminServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if (!SessionUtil.isAdmin(req.getSession(false))) {
-            resp.sendRedirect(req.getContextPath() + "/user?action=login");
+            resp.sendRedirect(req.getContextPath() + "/");
             return;
         }
         String action = req.getParameter("action");
@@ -93,6 +95,34 @@ public class AdminServlet extends HttpServlet {
             return rs.next() ? rs.getInt(1) : 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to load admin count", e);
+        }
+    }
+
+    private List<Product> getAllProductsForAdmin() {
+        String sql = "SELECT p.*, c.name as category_name FROM products p "
+            + "LEFT JOIN categories c ON p.category_id = c.category_id "
+            + "ORDER BY p.created_at DESC";
+        List<Product> products = new ArrayList<>();
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                int categoryId = rs.getInt("category_id");
+                products.add(new Product(
+                    rs.getInt("product_id"),
+                    rs.wasNull() ? null : categoryId,
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getBigDecimal("price"),
+                    rs.getInt("stock_qty"),
+                    rs.getString("image_url"),
+                    rs.getBoolean("is_active"),
+                    rs.getTimestamp("created_at")
+                ));
+            }
+            return products;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to load admin products", e);
         }
     }
 }

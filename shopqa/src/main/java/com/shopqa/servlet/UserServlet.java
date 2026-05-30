@@ -18,7 +18,9 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = req.getParameter("action");
-        if ("register".equals(action)) {
+        if ("login".equals(action)) {
+            req.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(req, resp);
+        } else if ("register".equals(action)) {
             req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
         } else if ("logout".equals(action)) {
             SessionUtil.invalidate(req.getSession(false));
@@ -31,10 +33,12 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = req.getParameter("action");
-        if ("register".equals(action)) {
+        if ("login".equals(action)) {
+            login(req, resp);
+        } else if ("register".equals(action)) {
             register(req, resp);
         } else {
-            login(req, resp);
+            resp.sendRedirect(req.getContextPath() + "/user?action=login");
         }
     }
 
@@ -60,10 +64,18 @@ public class UserServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
             return;
         }
+
+        String email = req.getParameter("email");
+        if (userDAO.findByEmail(email) != null) {
+            req.setAttribute("error", "Email already registered");
+            req.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(req, resp);
+            return;
+        }
+
         User user = new User();
         user.setFullName(req.getParameter("fullName"));
-        user.setEmail(req.getParameter("email"));
-        user.setPasswordHash(PasswordUtil.hashPassword(password));
+        user.setEmail(email);
+        user.setPasswordHash(password);
         user.setRole("customer");
         userDAO.createUser(user);
         resp.sendRedirect(req.getContextPath() + "/user?action=login");

@@ -34,12 +34,18 @@ public class CartServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Cart cart = resolveCart(req);
         String action = req.getParameter("action");
         if ("add".equals(action)) {
-            cartDAO.addItem(cart.getCartId(), parseInt(req.getParameter("productId"), 0), parseInt(req.getParameter("qty"), 1));
+            Cart cart = resolveCart(req);
+            cartDAO.addItem(cart.getCartId(), parseInt(req.getParameter("productId"), 0), parseQuantity(req));
         } else if ("update".equals(action)) {
-            cartDAO.updateItemQty(parseInt(req.getParameter("cartItemId"), 0), parseInt(req.getParameter("qty"), 1));
+            int cartItemId = parseInt(req.getParameter("cartItemId"), 0);
+            int quantity = parseQuantity(req);
+            if (quantity <= 0) {
+                cartDAO.removeItem(cartItemId);
+            } else {
+                cartDAO.updateItemQty(cartItemId, quantity);
+            }
         } else if ("remove".equals(action)) {
             cartDAO.removeItem(parseInt(req.getParameter("cartItemId"), 0));
         }
@@ -72,6 +78,14 @@ public class CartServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    private int parseQuantity(HttpServletRequest req) {
+        String quantity = req.getParameter("quantity");
+        if (quantity == null) {
+            quantity = req.getParameter("qty");
+        }
+        return parseInt(quantity, 1);
     }
 }
 

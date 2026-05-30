@@ -15,7 +15,7 @@ import java.util.List;
 
 public class CartDAO {
     public Cart getCartByUserId(int userId) {
-        Cart cart = findCart("SELECT * FROM cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", userId);
+        Cart cart = findCart("SELECT * FROM cart WHERE user_id = ?", userId);
         return cart != null ? cart : createCart(userId, null);
     }
 
@@ -25,7 +25,10 @@ public class CartDAO {
     }
 
     public List<CartItem> getCartItems(int cartId) {
-        String sql = "SELECT * FROM cart_items WHERE cart_id = ? ORDER BY added_at DESC";
+        String sql = "SELECT ci.*, p.name, p.price, p.image_url "
+            + "FROM cart_items ci "
+            + "JOIN products p ON ci.product_id = p.product_id "
+            + "WHERE ci.cart_id = ?";
         List<CartItem> items = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -42,27 +45,28 @@ public class CartDAO {
     }
 
     public boolean addItem(int cartId, int productId, int qty) {
-        String selectSql = "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        String selectSql = "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        String updateSql = "UPDATE cart_items SET quantity = quantity + ? WHERE cart_item_id = ?";
+        String insertSql = "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement select = conn.prepareStatement(selectSql)) {
             select.setInt(1, cartId);
             select.setInt(2, productId);
             try (ResultSet rs = select.executeQuery()) {
                 if (rs.next()) {
-                    return updateItemQty(rs.getInt("cart_item_id"), rs.getInt("quantity") + qty);
+                    try (PreparedStatement update = conn.prepareStatement(updateSql)) {
+                        update.setInt(1, qty);
+                        update.setInt(2, rs.getInt("cart_item_id"));
+                        return update.executeUpdate() > 0;
+                    }
                 }
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to inspect cart item", e);
-        }
-
-        String insertSql = "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(insertSql)) {
-            stmt.setInt(1, cartId);
-            stmt.setInt(2, productId);
-            stmt.setInt(3, Math.max(1, qty));
-            return stmt.executeUpdate() == 1;
+            try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                insert.setInt(1, cartId);
+                insert.setInt(2, productId);
+                insert.setInt(3, qty);
+                return insert.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Unable to add cart item", e);
         }
@@ -77,7 +81,7 @@ public class CartDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, qty);
             stmt.setInt(2, cartItemId);
-            return stmt.executeUpdate() == 1;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to update cart item", e);
         }
@@ -88,7 +92,7 @@ public class CartDAO {
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, cartItemId);
-            return stmt.executeUpdate() == 1;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to remove cart item", e);
         }
@@ -107,12 +111,18 @@ public class CartDAO {
     }
 
     public BigDecimal getCartTotal(int cartId) {
-        String sql = "SELECT COALESCE(SUM(ci.quantity * p.price), 0) AS total FROM cart_items ci JOIN products p ON ci.product_id = p.product_id WHERE ci.cart_id = ?";
+        String sql = "SELECT SUM(ci.quantity * p.price) AS total FROM cart_items ci "
+            + "JOIN products p ON ci.product_id = p.product_id "
+            + "WHERE ci.cart_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, cartId);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getBigDecimal("total") : BigDecimal.ZERO;
+                if (rs.next()) {
+                    BigDecimal total = rs.getBigDecimal("total");
+                    return total == null ? BigDecimal.ZERO : total;
+                }
+                return BigDecimal.ZERO;
             }
         } catch (SQLException e) {
             throw new RuntimeException("Unable to calculate cart total", e);
@@ -132,7 +142,7 @@ public class CartDAO {
     }
 
     private Cart findCartBySession(String sessionId) {
-        String sql = "SELECT * FROM cart WHERE session_id = ? ORDER BY created_at DESC LIMIT 1";
+        String sql = "SELECT * FROM cart WHERE session_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, sessionId);

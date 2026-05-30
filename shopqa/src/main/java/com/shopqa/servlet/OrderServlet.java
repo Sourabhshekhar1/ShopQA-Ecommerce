@@ -4,6 +4,7 @@ import com.shopqa.dao.CartDAO;
 import com.shopqa.dao.OrderDAO;
 import com.shopqa.dao.ProductDAO;
 import com.shopqa.model.Cart;
+import com.shopqa.model.CartItem;
 import com.shopqa.model.Order;
 import com.shopqa.model.OrderItem;
 import com.shopqa.model.Product;
@@ -25,23 +26,40 @@ public class OrderServlet extends HttpServlet {
     private final ProductDAO productDAO = new ProductDAO();
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         HttpSession session = req.getSession(false);
         if (!SessionUtil.isLoggedIn(session)) {
             resp.sendRedirect(req.getContextPath() + "/user?action=login");
             return;
         }
+
+        String shippingName = req.getParameter("shippingName");
+        String shippingAddress = req.getParameter("shippingAddress");
+        String shippingCity = req.getParameter("shippingCity");
+        String shippingZip = req.getParameter("shippingZip");
+        int cartId = resolveCartId(session);
+
+        if (isBlank(shippingName) || isBlank(shippingAddress) || isBlank(shippingCity) || isBlank(shippingZip)) {
+            List<CartItem> items = cartDAO.getCartItems(cartId);
+            req.setAttribute("error", "All shipping fields are required");
+            req.setAttribute("cartItems", items);
+            req.setAttribute("cartProducts", productMapForCart(items));
+            req.setAttribute("cartTotal", cartDAO.getCartTotal(cartId));
+            req.getRequestDispatcher("/WEB-INF/views/checkout.jsp").forward(req, resp);
+            return;
+        }
+
         int userId = SessionUtil.getCurrentUserId(session);
-        Cart cart = cartDAO.getCartByUserId(userId);
         int orderId = orderDAO.createOrderFromCart(
             userId,
-            cart.getCartId(),
-            req.getParameter("shippingName"),
-            req.getParameter("shippingAddress"),
-            req.getParameter("shippingCity"),
-            req.getParameter("shippingZip")
+            cartId,
+            shippingName,
+            shippingAddress,
+            shippingCity,
+            shippingZip
         );
-        cartDAO.clearCart(cart.getCartId());
+        cartDAO.clearCart(cartId);
+        session.removeAttribute("cartId");
         resp.sendRedirect(req.getContextPath() + "/orderConfirmation?orderId=" + orderId);
     }
 
@@ -67,6 +85,28 @@ public class OrderServlet extends HttpServlet {
             products.put(item.getProductId(), productDAO.getById(item.getProductId()));
         }
         return products;
+    }
+
+    private Map<Integer, Product> productMapForCart(List<CartItem> items) {
+        Map<Integer, Product> products = new HashMap<>();
+        for (CartItem item : items) {
+            products.put(item.getProductId(), productDAO.getById(item.getProductId()));
+        }
+        return products;
+    }
+
+    private int resolveCartId(HttpSession session) {
+        Object cartId = session.getAttribute("cartId");
+        if (cartId != null) {
+            return cartId instanceof Integer ? (Integer) cartId : Integer.parseInt(cartId.toString());
+        }
+        Cart cart = cartDAO.getCartByUserId(SessionUtil.getCurrentUserId(session));
+        session.setAttribute("cartId", cart.getCartId());
+        return cart.getCartId();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
 

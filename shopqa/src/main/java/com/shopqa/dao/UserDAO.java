@@ -2,6 +2,7 @@ package com.shopqa.dao;
 
 import com.shopqa.model.User;
 import com.shopqa.util.DBUtil;
+import com.shopqa.util.PasswordUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,24 +42,22 @@ public class UserDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, user.getPasswordHash());
+            stmt.setString(3, PasswordUtil.hashPassword(user.getPasswordHash()));
             stmt.setString(4, user.getRole() == null ? "customer" : user.getRole());
-            return stmt.executeUpdate() == 1;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create user", e);
         }
     }
 
     public boolean updateUser(User user) {
-        String sql = "UPDATE users SET full_name = ?, email = ?, password_hash = ?, role = ? WHERE user_id = ?";
+        String sql = "UPDATE users SET full_name = ?, email = ? WHERE user_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getEmail());
-            stmt.setString(3, user.getPasswordHash());
-            stmt.setString(4, user.getRole());
-            stmt.setInt(5, user.getUserId());
-            return stmt.executeUpdate() == 1;
+            stmt.setInt(3, user.getUserId());
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to update user", e);
         }

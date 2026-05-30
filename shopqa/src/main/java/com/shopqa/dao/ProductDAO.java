@@ -23,7 +23,7 @@ public class ProductDAO {
     }
 
     public Product getById(int id) {
-        String sql = "SELECT * FROM products WHERE product_id = ?";
+        String sql = "SELECT * FROM products WHERE product_id = ? AND is_active = 1";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -36,7 +36,7 @@ public class ProductDAO {
     }
 
     public List<Product> getByCategory(int categoryId) {
-        String sql = "SELECT * FROM products WHERE category_id = ? AND is_active = 1 ORDER BY name";
+        String sql = "SELECT * FROM products WHERE category_id = ? AND is_active = 1";
         List<Product> products = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -53,7 +53,7 @@ public class ProductDAO {
     }
 
     public List<Product> search(String keyword) {
-        String sql = "SELECT * FROM products WHERE is_active = 1 AND (name LIKE ? OR description LIKE ?) ORDER BY name";
+        String sql = "SELECT * FROM products WHERE is_active = 1 AND (name LIKE ? OR description LIKE ?)";
         List<Product> products = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -72,23 +72,23 @@ public class ProductDAO {
     }
 
     public boolean createProduct(Product p) {
-        String sql = "INSERT INTO products (category_id, name, description, price, stock_qty, image_url, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO products (category_id, name, description, price, stock_qty, image_url) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            bindProduct(stmt, p, false);
-            return stmt.executeUpdate() == 1;
+            bindProduct(stmt, p);
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create product", e);
         }
     }
 
     public boolean updateProduct(Product p) {
-        String sql = "UPDATE products SET category_id = ?, name = ?, description = ?, price = ?, stock_qty = ?, image_url = ?, is_active = ? WHERE product_id = ?";
+        String sql = "UPDATE products SET category_id = ?, name = ?, description = ?, price = ?, stock_qty = ?, image_url = ? WHERE product_id = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            bindProduct(stmt, p, false);
-            stmt.setInt(8, p.getProductId());
-            return stmt.executeUpdate() == 1;
+            bindProduct(stmt, p);
+            stmt.setInt(7, p.getProductId());
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to update product", e);
         }
@@ -97,9 +97,9 @@ public class ProductDAO {
     public boolean deleteProduct(int id) {
         String sql = "UPDATE products SET is_active = 0 WHERE product_id = ?";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
-            return stmt.executeUpdate() == 1;
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to delete product", e);
         }
@@ -119,7 +119,7 @@ public class ProductDAO {
         }
     }
 
-    private void bindProduct(PreparedStatement stmt, Product p, boolean includeId) throws SQLException {
+    private void bindProduct(PreparedStatement stmt, Product p) throws SQLException {
         if (p.getCategoryId() == null) {
             stmt.setNull(1, Types.INTEGER);
         } else {
@@ -130,7 +130,6 @@ public class ProductDAO {
         stmt.setBigDecimal(4, p.getPrice());
         stmt.setInt(5, p.getStockQty());
         stmt.setString(6, p.getImageUrl());
-        stmt.setBoolean(7, p.isActive());
     }
 
     private Product mapProduct(ResultSet rs) throws SQLException {

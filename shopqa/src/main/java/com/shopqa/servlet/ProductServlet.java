@@ -20,6 +20,10 @@ public class ProductServlet extends HttpServlet {
         String id = req.getParameter("id");
         if (id != null && !id.isBlank()) {
             Product product = productDAO.getById(Integer.parseInt(id));
+            if (product == null) {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             req.setAttribute("product", product);
             req.getRequestDispatcher("/WEB-INF/views/productDetail.jsp").forward(req, resp);
             return;
@@ -30,9 +34,10 @@ public class ProductServlet extends HttpServlet {
         List<Product> products;
         if (categoryId != null && !categoryId.isBlank()) {
             products = productDAO.getByCategory(Integer.parseInt(categoryId));
-            req.setAttribute("selectedCategoryId", categoryId);
+            req.setAttribute("selectedCategoryId", Integer.parseInt(categoryId));
         } else if (search != null && !search.isBlank()) {
             products = productDAO.search(search);
+            req.setAttribute("searchTerm", search);
             req.setAttribute("search", search);
         } else {
             products = productDAO.getAllActive();

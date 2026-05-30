@@ -28,13 +28,22 @@ public class CheckoutServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/user?action=login");
             return;
         }
-        Cart cart = cartDAO.getCartByUserId(SessionUtil.getCurrentUserId(session));
-        List<CartItem> items = cartDAO.getCartItems(cart.getCartId());
-        req.setAttribute("cart", cart);
+        int cartId = resolveCartId(session);
+        List<CartItem> items = cartDAO.getCartItems(cartId);
         req.setAttribute("cartItems", items);
         req.setAttribute("cartProducts", productMap(items));
-        req.setAttribute("cartTotal", cartDAO.getCartTotal(cart.getCartId()));
+        req.setAttribute("cartTotal", cartDAO.getCartTotal(cartId));
         req.getRequestDispatcher("/WEB-INF/views/checkout.jsp").forward(req, resp);
+    }
+
+    private int resolveCartId(HttpSession session) {
+        Object cartId = session.getAttribute("cartId");
+        if (cartId != null) {
+            return cartId instanceof Integer ? (Integer) cartId : Integer.parseInt(cartId.toString());
+        }
+        Cart cart = cartDAO.getCartByUserId(SessionUtil.getCurrentUserId(session));
+        session.setAttribute("cartId", cart.getCartId());
+        return cart.getCartId();
     }
 
     private Map<Integer, Product> productMap(List<CartItem> items) {

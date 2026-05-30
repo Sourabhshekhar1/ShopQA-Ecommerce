@@ -15,52 +15,61 @@ import java.util.List;
 
 public class OrderDAO {
     public int createOrderFromCart(int userId, int cartId, String shippingName, String shippingAddress, String city, String zip) {
-        String totalSql = "SELECT COALESCE(SUM(ci.quantity * p.price), 0) AS total FROM cart_items ci JOIN products p ON ci.product_id = p.product_id WHERE ci.cart_id = ?";
         String orderSql = "INSERT INTO orders (user_id, total_amount, shipping_name, shipping_address, shipping_city, shipping_zip) VALUES (?, ?, ?, ?, ?, ?)";
         String itemsSql = "SELECT ci.product_id, ci.quantity, p.price FROM cart_items ci JOIN products p ON ci.product_id = p.product_id WHERE ci.cart_id = ?";
         String orderItemSql = "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)";
+        String stockSql = "UPDATE products SET stock_qty = stock_qty - ? WHERE product_id = ?";
+        BigDecimal total = new CartDAO().getCartTotal(cartId);
+
         try (Connection conn = DBUtil.getConnection()) {
-            conn.setAutoCommit(false);
-            BigDecimal total;
-            try (PreparedStatement totalStmt = conn.prepareStatement(totalSql)) {
-                totalStmt.setInt(1, cartId);
-                try (ResultSet rs = totalStmt.executeQuery()) {
-                    total = rs.next() ? rs.getBigDecimal("total") : BigDecimal.ZERO;
-                }
-            }
-            if (total.compareTo(BigDecimal.ZERO) <= 0) {
-                conn.rollback();
-                return 0;
-            }
-            int orderId;
-            try (PreparedStatement orderStmt = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
-                orderStmt.setInt(1, userId);
-                orderStmt.setBigDecimal(2, total);
-                orderStmt.setString(3, shippingName);
-                orderStmt.setString(4, shippingAddress);
-                orderStmt.setString(5, city);
-                orderStmt.setString(6, zip);
-                orderStmt.executeUpdate();
-                try (ResultSet keys = orderStmt.getGeneratedKeys()) {
-                    orderId = keys.next() ? keys.getInt(1) : 0;
-                }
-            }
-            try (PreparedStatement itemsStmt = conn.prepareStatement(itemsSql);
-                 PreparedStatement orderItemStmt = conn.prepareStatement(orderItemSql)) {
-                itemsStmt.setInt(1, cartId);
-                try (ResultSet rs = itemsStmt.executeQuery()) {
-                    while (rs.next()) {
-                        orderItemStmt.setInt(1, orderId);
-                        orderItemStmt.setInt(2, rs.getInt("product_id"));
-                        orderItemStmt.setInt(3, rs.getInt("quantity"));
-                        orderItemStmt.setBigDecimal(4, rs.getBigDecimal("price"));
-                        orderItemStmt.addBatch();
+            try {
+                conn.setAutoCommit(false);
+                int orderId;
+                try (PreparedStatement orderStmt = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
+                    orderStmt.setInt(1, userId);
+                    orderStmt.setBigDecimal(2, total);
+                    orderStmt.setString(3, shippingName);
+                    orderStmt.setString(4, shippingAddress);
+                    orderStmt.setString(5, city);
+                    orderStmt.setString(6, zip);
+                    orderStmt.executeUpdate();
+                    try (ResultSet keys = orderStmt.getGeneratedKeys()) {
+                        orderId = keys.next() ? keys.getInt(1) : 0;
                     }
-                    orderItemStmt.executeBatch();
                 }
+
+                try (PreparedStatement itemsStmt = conn.prepareStatement(itemsSql);
+                     PreparedStatement orderItemStmt = conn.prepareStatement(orderItemSql);
+                     PreparedStatement stockStmt = conn.prepareStatement(stockSql)) {
+                    itemsStmt.setInt(1, cartId);
+                    try (ResultSet rs = itemsStmt.executeQuery()) {
+                        while (rs.next()) {
+                            int productId = rs.getInt("product_id");
+                            int quantity = rs.getInt("quantity");
+
+                            orderItemStmt.setInt(1, orderId);
+                            orderItemStmt.setInt(2, productId);
+                            orderItemStmt.setInt(3, quantity);
+                            orderItemStmt.setBigDecimal(4, rs.getBigDecimal("price"));
+                            orderItemStmt.addBatch();
+
+                            stockStmt.setInt(1, quantity);
+                            stockStmt.setInt(2, productId);
+                            stockStmt.addBatch();
+                        }
+                        orderItemStmt.executeBatch();
+                        stockStmt.executeBatch();
+                    }
+                }
+
+                conn.commit();
+                return orderId;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
-            conn.commit();
-            return orderId;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create order", e);
         }
@@ -124,7 +133,9 @@ public class OrderDAO {
     }
 
     public List<OrderItem> getOrderItems(int orderId) {
-        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+        String sql = "SELECT oi.*, p.name FROM order_items oi "
+            + "JOIN products p ON oi.product_id = p.product_id "
+            + "WHERE oi.order_id = ?";
         List<OrderItem> items = new ArrayList<>();
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
