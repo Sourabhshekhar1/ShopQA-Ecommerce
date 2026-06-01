@@ -1,0 +1,19 @@
+.site-header { position: sticky; top: 0; z-index: 10; background: var(--card-bg); border-bottom: 1px solid var(--border); }
+.navbar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.logo { font-size: 1.5rem; font-weight: 700; color: var(--secondary); }
+.nav-links { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end; }
+.nav-links a { color: var(--text); }
+.navbar-inner { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.navbar-brand { font-size: 1.5rem; font-weight: 700; color: var(--secondary); }
+.navbar-links { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end; list-style: none; margin: 0; padding: 0; }
+.navbar-links a { color: var(--text); }
+.cart-link { position: relative; }
+.cart-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.3rem; height: 1.3rem; border-radius: 999px; background: var(--accent); color: #111827; font-size: .8rem; margin-left: .2rem; }
+.navbar-user { display: flex; align-items: center; gap: .5rem; }
+.navbar-user span { font-size: .9rem; color: var(--text-light); }
+.profile-avatar, .profile-initial { width: 32px; height: 32px; border-radius: 50%; }
+.profile-avatar { object-fit: cover; border: 2px solid var(--primary); }
+.profile-initial { background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+.profile-upload-form { display: inline; }
+.profile-upload-label { cursor: pointer; font-size: .85rem; color: var(--primary); font-weight: 500; }
+.profile-upload-input { display: none; }
