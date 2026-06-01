@@ -5,3 +5,5 @@ db.properties
 uploads/
 *.log
 .DS_Store
+shopqa/target/
+*.class
