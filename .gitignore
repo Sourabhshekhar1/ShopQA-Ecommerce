@@ -1,0 +1,7 @@
+target/
+*.war
+*.class
+db.properties
+uploads/
+*.log
+.DS_Store

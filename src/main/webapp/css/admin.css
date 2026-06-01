@@ -1,0 +1,10 @@
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+.stat-card { display: grid; gap: .5rem; }
+.stat-card strong { font-size: 2rem; color: var(--secondary); }
+.admin-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+.admin-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin: 1rem 0; }
+.admin-form textarea { grid-column: span 2; min-height: 70px; }
+.table-actions, .status-form { display: flex; gap: .5rem; flex-wrap: wrap; }
+input, textarea, select { padding: .55rem; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+@media (max-width: 780px) { .stat-grid, .admin-form { grid-template-columns: 1fr; } .admin-form textarea { grid-column: auto; } }
+
