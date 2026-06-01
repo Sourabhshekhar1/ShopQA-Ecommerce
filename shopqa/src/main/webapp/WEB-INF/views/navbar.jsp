@@ -6,11 +6,13 @@
       <li><a href="${pageContext.request.contextPath}/">Home</a></li>
       <li><a href="${pageContext.request.contextPath}/products">Products</a></li>
       <li>
-        <a href="${pageContext.request.contextPath}/cart" class="cart-link">Cart</a>
+        <a href="${pageContext.request.contextPath}/cart" class="cart-link">
+          🛒 Cart
+        </a>
       </li>
       <c:choose>
         <c:when test="${not empty sessionScope.userId}">
-          <li class="navbar-user"><span>Hi, ${sessionScope.fullName}</span></li>
+          <li><span style="color:var(--text-light);font-size:0.9rem;">Hi, ${sessionScope.fullName}</span></li>
           <c:if test="${sessionScope.userRole == 'admin'}">
             <li><a href="${pageContext.request.contextPath}/admin?action=dashboard">Admin</a></li>
           </c:if>

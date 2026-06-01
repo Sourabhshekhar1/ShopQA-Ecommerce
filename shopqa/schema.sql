@@ -35,6 +35,7 @@ CREATE TABLE users (
   email VARCHAR(200) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('customer','admin') DEFAULT 'customer',
+  profile_photo VARCHAR(500) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

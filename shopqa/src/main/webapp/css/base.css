@@ -9,7 +9,7 @@
   --danger: #EF4444;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Georgia, "Times New Roman", serif; color: var(--text); background: var(--bg); line-height: 1.5; }
+body { font-family: Georgia, "Times New Roman", serif; color: var(--text); background-color: #EEF2FF; background-image: radial-gradient(#2563EB55 2px, transparent 2px); background-size: 15px 15px; line-height: 1.6; }
 a { color: var(--primary); text-decoration: none; }
 img { max-width: 100%; display: block; }
 .container { max-width: 1200px; margin: auto; padding: 0 1rem; }

@@ -31,7 +31,7 @@
 </c:if>
 <c:if test="${not empty product}">
   <section class="product-detail">
-    <img src="<c:url value='/${product.imageUrl}'/>" alt="${product.name}">
+    <img src="${product.imageUrl}" alt="${product.name}" class="product-detail-img">
     <div>
       <h1>${product.name}</h1>
       <p class="price">$${product.price}</p>

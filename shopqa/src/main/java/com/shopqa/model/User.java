@@ -8,6 +8,7 @@ private String fullName;
 private String email;
 private String passwordHash;
 private String role;
+private String profilePhoto;
 private Timestamp createdAt;
 
             public User() {
@@ -60,6 +61,14 @@ public String getRole() {
 
 public void setRole(String role) {
     this.role = role;
+}
+
+public String getProfilePhoto() {
+    return profilePhoto;
+}
+
+public void setProfilePhoto(String profilePhoto) {
+    this.profilePhoto = profilePhoto;
 }
 
 public Timestamp getCreatedAt() {

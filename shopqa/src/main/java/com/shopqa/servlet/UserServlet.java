@@ -5,12 +5,20 @@ import com.shopqa.model.User;
 import com.shopqa.util.PasswordUtil;
 import com.shopqa.util.SessionUtil;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
 
 public class UserServlet extends HttpServlet {
     private final UserDAO userDAO = new UserDAO();
@@ -49,6 +57,7 @@ public class UserServlet extends HttpServlet {
             session.setAttribute("userId", user.getUserId());
             session.setAttribute("userRole", user.getRole());
             session.setAttribute("fullName", user.getFullName());
+            session.setAttribute("profilePhoto", user.getProfilePhoto());
             resp.sendRedirect(req.getContextPath() + "/");
             return;
         }
@@ -77,8 +86,9 @@ public class UserServlet extends HttpServlet {
         user.setEmail(email);
         user.setPasswordHash(password);
         user.setRole("customer");
-        userDAO.createUser(user);
+        if (userDAO.createUser(user)) {
         resp.sendRedirect(req.getContextPath() + "/user?action=login");
+        }
     }
 }
 

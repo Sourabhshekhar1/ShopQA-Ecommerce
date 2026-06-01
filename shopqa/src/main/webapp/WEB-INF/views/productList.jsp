@@ -47,7 +47,7 @@
                   <c:param name="id" value="${product.productId}"/>
                 </c:url>
                 <a href="${productUrl}">
-                  <img src="<c:url value='/${product.imageUrl}'/>" alt="${product.name}">
+                <img src="${product.imageUrl}" alt="${product.name}" class="product-card-img">
                 </a>
         <h2>${product.name}</h2>
         <p>${product.description}</p>

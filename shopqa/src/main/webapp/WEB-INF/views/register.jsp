@@ -25,7 +25,7 @@
   </nav>
 </header>
 <main class="container page">
-<form method="post" action="<c:url value='/user'/>" class="card form-card narrow">
+<form method="post" action="<c:url value='/user'/>" class="card form-card narrow" >
   <h1>Register</h1>
   <c:if test="${not empty error}"><p class="validation-error">${error}</p></c:if>
   <input type="hidden" name="action" value="register">
@@ -33,6 +33,7 @@
   <div class="form-group"><label for="email">Email</label><input id="email" type="email" name="email" required></div>
   <div class="form-group"><label for="password">Password</label><input id="password" type="password" name="password" required></div>
   <div class="form-group"><label for="confirmPassword">Confirm Password</label><input id="confirmPassword" type="password" name="confirmPassword" required></div>
+  
   <button class="btn btn-primary" type="submit">Register</button>
 </form>
 </main>
